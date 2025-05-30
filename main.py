@@ -29,7 +29,7 @@ for doc in world_docs_initial:
 
 all_docs = character_docs_initial + world_docs_initial
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=150)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(all_docs)
 
 # --- 2. Создание Embeddings и ChromaDB ---
