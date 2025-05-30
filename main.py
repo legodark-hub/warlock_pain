@@ -12,7 +12,7 @@ import config
 
 
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-LLM_NAME = "local-model"
+LLM_NAME = "deepseek/deepseek-chat:free"
 CHAR_INFO = "./data/character_info.txt"
 WORLD_INFO = "./data/world_info.txt"
 
