@@ -1,0 +1,9 @@
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langgraph
+langchain-chroma
+langchain-huggingface
+sentence-transformers
+python-dotenv
