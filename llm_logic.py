@@ -1,9 +1,10 @@
-from typing import TypedDict
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver # Добавляем импорт MemorySaver
+from langgraph.graph import StateGraph, END, MessagesState
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
 
 import config
 from prompts import CHARACTER_NAME, CHARACTER_CORE_PERSONALITY
@@ -23,16 +24,20 @@ llm = ChatOpenAI(
 )
 
 
-class AgentState(TypedDict):
-    user_input: str
-    retrieved_character_context: str
-    retrieved_world_context: str
-    generation: str
+def retrieve_and_generate_node(state: MessagesState):
+    print("\n--- УЗЕЛ: ИЗВЛЕЧЕНИЕ КОНТЕКСТА И ГЕНЕРАЦИЯ ОТВЕТА ---")
 
-
-def retrieve_context_node(state: AgentState):
-    print("\n--- УЗЕЛ: ИЗВЛЕЧЕНИЕ КОНТЕКСТА ---")
-    user_input = state["user_input"]
+    if not state["messages"] or not isinstance(state["messages"][-1], HumanMessage):
+        print("Ошибка: Ожидалось, что последнее сообщение будет HumanMessage.")
+        return {
+            "messages": [
+                AIMessage(
+                    content="Я не получил ваш последний запрос или произошла ошибка в последовательности сообщений."
+                )
+            ]
+        }
+    current_human_message = state["messages"][-1]
+    user_input = current_human_message.content
 
     character_docs_retrieved = retriever.invoke(
         f"Информация о персонаже {CHARACTER_NAME}, связанная с: {user_input}",
@@ -56,35 +61,21 @@ def retrieve_context_node(state: AgentState):
         ]
     )
 
-    print(f"Извлеченный контекст (персонаж): {char_context_str[:300]}...")
-    print(f"Извлеченный контекст (мир): {world_context_str[:300]}...")
+    print(f"Извлеченный контекст (персонаж) для запроса: {char_context_str[:200]}...")
+    print(f"Извлеченный контекст (мир) для запроса: {world_context_str[:200]}...")
 
-    return {
-        "retrieved_character_context": char_context_str,
-        "retrieved_world_context": world_context_str,
-    }
+    print("--- (внутри узла) ГЕНЕРАЦИЯ ОТВЕТА ---")
 
-
-def generate_response_node(state: AgentState):
-    print("\n--- УЗЕЛ: ГЕНЕРАЦИЯ ОТВЕТА ---")
-    user_input = state["user_input"]
-    char_context = state["retrieved_character_context"]
-    world_context = state["retrieved_world_context"]
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                f"""{CHARACTER_CORE_PERSONALITY}
+    system_prompt_content = f"""{CHARACTER_CORE_PERSONALITY}
 
 Контекст о персонаже ({CHARACTER_NAME}):
 <character_context>
-{char_context if char_context else "Нет специфической информации о персонаже для этого запроса."}
+{char_context_str if char_context_str else "Нет специфической информации о персонаже для этого запроса."}
 </character_context>
 
 Контекст о мире:
 <world_context>
-{world_context if world_context else "Нет специфической информации о мире для этого запроса."}
+{world_context_str if world_context_str else "Нет специфической информации о мире для этого запроса."}
 </world_context>
 
 Твоя задача - отвечать пользователю как {CHARACTER_NAME}, воплощая его личность, 
@@ -94,29 +85,28 @@ def generate_response_node(state: AgentState):
 Будь увлекательным и последовательным в своей роли.
 Если запрос пользователя касается чего-то, чего твой персонаж не знал бы или о чем 
 не заботился бы, ответь так, как это соответствует твоему персонажу.
-""",
-            ),
-            ("human", "{user_input}"),
-        ]
-    )
+"""
 
+    llm_input_messages = [SystemMessage(content=system_prompt_content)] + state[
+        "messages"
+    ]
+
+    prompt = ChatPromptTemplate.from_messages(llm_input_messages)
     chain = prompt | llm | StrOutputParser()
 
-    full_response = chain.invoke({"user_input": user_input})
+    full_response = chain.invoke({})
 
     print(f"{CHARACTER_NAME}: ", end="", flush=True)
     print(full_response)
-    return {"generation": full_response}
+
+    return {"messages": [AIMessage(content=full_response)]}
 
 
-workflow = StateGraph(AgentState)
-workflow.add_node("retrieve_context", retrieve_context_node)
-workflow.add_node("generate_response", generate_response_node)
-workflow.set_entry_point("retrieve_context")
-workflow.add_edge("retrieve_context", "generate_response")
-workflow.add_edge("generate_response", END)
+workflow = StateGraph(MessagesState)
+workflow.add_node("retrieve_and_generate", retrieve_and_generate_node)
+workflow.set_entry_point("retrieve_and_generate")
+workflow.add_edge("retrieve_and_generate", END)
 
-memory = MemorySaver() # Инициализируем MemorySaver
-
-app = workflow.compile(checkpointer=memory) # Добавляем checkpointer при компиляции
-print("Граф LangGraph скомпилирован.")
+memory = MemorySaver()
+app = workflow.compile(checkpointer=memory)
+print("Граф LangGraph скомпилирован с MessagesState.")
