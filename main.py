@@ -2,8 +2,14 @@ from llm_logic import app
 from prompts import CHARACTER_NAME
 
 print(
+    f"Используется {type(app.checkpointer).__name__} для сохранения истории."
+)
+print(
     f"\nНачат чат с {CHARACTER_NAME}. Введите 'выход' или 'quit' для завершения."
 )
+
+THREAD_ID = "warlock_pain_cli_chat_v1" # Уникальный идентификатор для текущей сессии чата
+
 while True:
     try:
         user_query = input("Вы: ")
@@ -13,7 +19,8 @@ while True:
             continue
 
         inputs_for_graph = {"user_input": user_query}
-        app.invoke(inputs_for_graph)
+        # Передаем thread_id для сохранения и загрузки состояния сессии
+        app.invoke(inputs_for_graph, config={"configurable": {"thread_id": THREAD_ID}})
 
     except KeyboardInterrupt:
         print("\nЧат прерван пользователем.")

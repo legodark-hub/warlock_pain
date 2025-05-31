@@ -2,6 +2,7 @@ from typing import TypedDict
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver # Добавляем импорт MemorySaver
 from langchain_openai import ChatOpenAI
 
 import config
@@ -115,5 +116,7 @@ workflow.set_entry_point("retrieve_context")
 workflow.add_edge("retrieve_context", "generate_response")
 workflow.add_edge("generate_response", END)
 
-app = workflow.compile()
+memory = MemorySaver() # Инициализируем MemorySaver
+
+app = workflow.compile(checkpointer=memory) # Добавляем checkpointer при компиляции
 print("Граф LangGraph скомпилирован.")
