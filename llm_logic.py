@@ -101,16 +101,13 @@ def generate_response_node(state: AgentState):
 
     chain = prompt | llm | StrOutputParser()
 
-    full_response = ""
+    full_response = chain.invoke({"user_input": user_input})
+
     print(f"{CHARACTER_NAME}: ", end="", flush=True)
-    for chunk in chain.stream({"user_input": user_input}):
-        print(chunk, end="", flush=True)
-        full_response += chunk
-    print()
+    print(full_response)
     return {"generation": full_response}
 
 
-# --- Построение графа ---
 workflow = StateGraph(AgentState)
 workflow.add_node("retrieve_context", retrieve_context_node)
 workflow.add_node("generate_response", generate_response_node)
