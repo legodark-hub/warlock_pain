@@ -8,9 +8,13 @@ EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 CHAR_INFO_PATH = "./data/character_info.txt"
 WORLD_INFO_PATH = "./data/world_info.txt"
 PERSIST_DIRECTORY = "./chroma_db"
+CHUNK_SIZE = 250
+CHUNK_OVERLAP = 50
 
 
-def initialize_retriever(k_results: int = 4):
+
+
+def initialize_retriever(k_results: int = 5):
     """
     Инициализирует и возвращает ретривер на основе ChromaDB.
     Создает базу данных, если она не существует, или загружает существующую.
@@ -39,7 +43,7 @@ def initialize_retriever(k_results: int = 4):
         all_docs = character_docs_initial + world_docs_initial
 
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=200
+            chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
         )
         splits = text_splitter.split_documents(all_docs)
 
