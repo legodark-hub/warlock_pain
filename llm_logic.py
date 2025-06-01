@@ -3,7 +3,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END, MessagesState
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, trim_messages
 
 
 import config
@@ -11,6 +11,8 @@ from prompts import CHARACTER_NAME, CHARACTER_CORE_PERSONALITY
 from vector_store import initialize_retriever
 
 LLM_NAME = "deepseek/deepseek-chat:free"
+MAX_MESSAGES_HISTORY = 10  
+
 
 retriever = initialize_retriever()
 
@@ -20,9 +22,25 @@ llm = ChatOpenAI(
     api_key=config.LLM_API_KEY,
     model=LLM_NAME,
     temperature=0.7,
-    streaming=True,
 )
 
+
+def trim_history_node(state: MessagesState):
+    print("\n--- УЗЕЛ: ОБРЕЗКА ИСТОРИИ ---")
+    trimmed_messages = trim_messages(
+        state["messages"],
+        max_tokens=MAX_MESSAGES_HISTORY,
+        strategy="last",
+        token_counter=len,
+        start_on="human",
+        include_system=False,
+        allow_partial=False,
+    )
+    print(f"История обрезана до {len(trimmed_messages)} сообщений.")
+    if not trimmed_messages:
+        print("Внимание: После обрезки не осталось сообщений. Возвращаем исходное состояние.")
+        return state
+    return {"messages": trimmed_messages}
 
 def retrieve_and_generate_node(state: MessagesState):
     print("\n--- УЗЕЛ: ИЗВЛЕЧЕНИЕ КОНТЕКСТА И ГЕНЕРАЦИЯ ОТВЕТА ---")
@@ -103,8 +121,10 @@ def retrieve_and_generate_node(state: MessagesState):
 
 
 workflow = StateGraph(MessagesState)
+workflow.add_node("trim_history", trim_history_node)
 workflow.add_node("retrieve_and_generate", retrieve_and_generate_node)
-workflow.set_entry_point("retrieve_and_generate")
+workflow.set_entry_point("trim_history")
+workflow.add_edge("trim_history", "retrieve_and_generate")
 workflow.add_edge("retrieve_and_generate", END)
 
 memory = MemorySaver()
