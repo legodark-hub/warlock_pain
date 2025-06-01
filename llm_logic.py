@@ -18,7 +18,7 @@ print("Инициализация LLM")
 llm = ChatOpenAI(
     base_url=config.LLM_BASE_URL,
     api_key=config.LLM_API_KEY,
-    model_name=LLM_NAME,
+    model=LLM_NAME,
     temperature=0.7,
     streaming=True,
 )
