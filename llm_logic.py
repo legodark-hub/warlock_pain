@@ -10,7 +10,6 @@ import config
 from prompts import CHARACTER_NAME, CHARACTER_CORE_PERSONALITY
 from vector_store import initialize_retriever
 
-LLM_NAME = "deepseek/deepseek-chat:free"
 MAX_MESSAGES_HISTORY = 10  
 
 
@@ -20,7 +19,7 @@ print("Инициализация LLM")
 llm = ChatOpenAI(
     base_url=config.LLM_BASE_URL,
     api_key=config.LLM_API_KEY,
-    model=LLM_NAME,
+    model=config.LLM_NAME,
     temperature=0.7,
 )
 
