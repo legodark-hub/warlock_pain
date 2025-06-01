@@ -167,4 +167,3 @@ celerybeat-schedule.dir
 .vscode/settings.json
 .test.env
 /chroma_db
-/data
