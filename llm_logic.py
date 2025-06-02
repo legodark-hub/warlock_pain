@@ -24,7 +24,7 @@ llm = ChatOpenAI(
 )
 
 
-def trim_history_node(state: MessagesState):
+async def trim_history_node(state: MessagesState):
     print("\n--- УЗЕЛ: ОБРЕЗКА ИСТОРИИ ---")
     trimmed_messages = trim_messages(
         state["messages"],
@@ -41,7 +41,7 @@ def trim_history_node(state: MessagesState):
         return state
     return {"messages": trimmed_messages}
 
-def retrieve_and_generate_node(state: MessagesState):
+async def retrieve_and_generate_node(state: MessagesState):
     print("\n--- УЗЕЛ: ИЗВЛЕЧЕНИЕ КОНТЕКСТА И ГЕНЕРАЦИЯ ОТВЕТА ---")
 
     if not state["messages"] or not isinstance(state["messages"][-1], HumanMessage):
@@ -56,7 +56,7 @@ def retrieve_and_generate_node(state: MessagesState):
     current_human_message = state["messages"][-1]
     user_input = current_human_message.content
 
-    character_docs_retrieved = retriever.invoke(
+    character_docs_retrieved = await retriever.ainvoke(
         f"Информация о персонаже {CHARACTER_NAME}, связанная с: {user_input}",
     )
     char_context_str = "\n---\n".join(
@@ -66,8 +66,7 @@ def retrieve_and_generate_node(state: MessagesState):
             if doc.metadata.get("source") == "character_story"
         ]
     )
-
-    world_docs_retrieved = retriever.invoke(
+    world_docs_retrieved = await retriever.ainvoke(
         f"Информация из истории мира, связанная с: {user_input}"
     )
     world_context_str = "\n---\n".join(
@@ -111,7 +110,7 @@ def retrieve_and_generate_node(state: MessagesState):
     prompt = ChatPromptTemplate.from_messages(llm_input_messages)
     chain = prompt | llm | StrOutputParser()
 
-    full_response = chain.invoke({})
+    full_response = await chain.ainvoke({})
 
     print(f"{CHARACTER_NAME}: ", end="", flush=True)
     print(full_response)
