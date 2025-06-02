@@ -5,27 +5,28 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, trim_messages
 
-
 import config
 from prompts import CHARACTER_NAME, CHARACTER_CORE_PERSONALITY
 from vector_store import initialize_retriever
+from loguru import logger
 
 MAX_MESSAGES_HISTORY = 10  
 
 
 retriever = initialize_retriever()
 
-print("Инициализация LLM")
+logger.info("Инициализация LLM...")
 llm = ChatOpenAI(
     base_url=config.LLM_BASE_URL,
     api_key=config.LLM_API_KEY,
     model=config.LLM_NAME,
     temperature=0.7,
 )
+logger.info("LLM инициализирован.")
 
 
 async def trim_history_node(state: MessagesState):
-    print("\n--- УЗЕЛ: ОБРЕЗКА ИСТОРИИ ---")
+    logger.debug("--- УЗЕЛ: ОБРЕЗКА ИСТОРИИ ---")
     trimmed_messages = trim_messages(
         state["messages"],
         max_tokens=MAX_MESSAGES_HISTORY,
@@ -35,20 +36,21 @@ async def trim_history_node(state: MessagesState):
         include_system=False,
         allow_partial=False,
     )
-    print(f"История обрезана до {len(trimmed_messages)} сообщений.")
+    logger.debug(f"История обрезана до {len(trimmed_messages)} сообщений.")
     if not trimmed_messages:
-        print("Внимание: После обрезки не осталось сообщений. Возвращаем исходное состояние.")
+        logger.warning("После обрезки не осталось сообщений. Возвращаем исходное состояние.")
         return state
     return {"messages": trimmed_messages}
 
 async def retrieve_and_generate_node(state: MessagesState):
-    print("\n--- УЗЕЛ: ИЗВЛЕЧЕНИЕ КОНТЕКСТА И ГЕНЕРАЦИЯ ОТВЕТА ---")
+    logger.debug("--- УЗЕЛ: ИЗВЛЕЧЕНИЕ КОНТЕКСТА И ГЕНЕРАЦИЯ ОТВЕТА ---")
 
     if not state["messages"] or not isinstance(state["messages"][-1], HumanMessage):
-        print("Ошибка: Ожидалось, что последнее сообщение будет HumanMessage.")
+        logger.error("Ошибка: Ожидалось, что последнее сообщение будет HumanMessage.")
         return {
             "messages": [
                 AIMessage(
+                    # TODO: Consider making this error message more character-appropriate
                     content="Я не получил ваш последний запрос или произошла ошибка в последовательности сообщений."
                 )
             ]
@@ -56,6 +58,7 @@ async def retrieve_and_generate_node(state: MessagesState):
     current_human_message = state["messages"][-1]
     user_input = current_human_message.content
 
+    logger.debug(f"Получен пользовательский ввод: {user_input}")
     character_docs_retrieved = await retriever.ainvoke(
         f"Информация о персонаже {CHARACTER_NAME}, связанная с: {user_input}",
     )
@@ -77,10 +80,10 @@ async def retrieve_and_generate_node(state: MessagesState):
         ]
     )
 
-    print(f"Извлеченный контекст (персонаж) для запроса: {char_context_str[:200]}...")
-    print(f"Извлеченный контекст (мир) для запроса: {world_context_str[:200]}...")
+    logger.debug(f"Извлеченный контекст (персонаж) для запроса: {char_context_str[:200]}...")
+    logger.debug(f"Извлеченный контекст (мир) для запроса: {world_context_str[:200]}...")
 
-    print("--- (внутри узла) ГЕНЕРАЦИЯ ОТВЕТА ---")
+    logger.debug("--- (внутри узла) ГЕНЕРАЦИЯ ОТВЕТА ---")
 
     system_prompt_content = f"""{CHARACTER_CORE_PERSONALITY}
 
@@ -112,8 +115,8 @@ async def retrieve_and_generate_node(state: MessagesState):
 
     full_response = await chain.ainvoke({})
 
-    print(f"{CHARACTER_NAME}: ", end="", flush=True)
-    print(full_response)
+    # Outputting the response to the console is handled by the main loop now
+    logger.info(f"Ответ {CHARACTER_NAME}: {full_response}")
 
     return {"messages": [AIMessage(content=full_response)]}
 
@@ -127,4 +130,4 @@ workflow.add_edge("retrieve_and_generate", END)
 
 memory = MemorySaver()
 app = workflow.compile(checkpointer=memory)
-print("Граф LangGraph скомпилирован с MessagesState.")
+logger.info("Граф LangGraph скомпилирован с MessagesState.")
