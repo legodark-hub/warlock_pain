@@ -50,7 +50,6 @@ async def retrieve_and_generate_node(state: MessagesState):
         return {
             "messages": [
                 AIMessage(
-                    # TODO: Consider making this error message more character-appropriate
                     content="Я не получил ваш последний запрос или произошла ошибка в последовательности сообщений."
                 )
             ]
@@ -115,7 +114,6 @@ async def retrieve_and_generate_node(state: MessagesState):
 
     full_response = await chain.ainvoke({})
 
-    # Outputting the response to the console is handled by the main loop now
     logger.info(f"Ответ {CHARACTER_NAME}: {full_response}")
 
     return {"messages": [AIMessage(content=full_response)]}
