@@ -18,7 +18,12 @@ async def main_chat_loop():
                 continue
 
             inputs_for_graph = {"messages": [HumanMessage(content=user_query)]}
-            await app.ainvoke(inputs_for_graph, config={"configurable": {"thread_id": THREAD_ID}})
+            result = await app.ainvoke(inputs_for_graph, config={"configurable": {"thread_id": THREAD_ID}})
+            if result and "messages" in result and result["messages"]:
+                ai_message = result["messages"][-1]
+                print(f"{CHARACTER_NAME}: {ai_message.content}")
+            else:
+                print(f"{CHARACTER_NAME}: (Не удалось получить ответ)")
 
         except KeyboardInterrupt:
             print("\nЧат прерван пользователем.")
