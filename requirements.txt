@@ -7,3 +7,6 @@ langchain-chroma
 langchain-huggingface
 sentence-transformers
 python-dotenv
+loguru
+fastapi
+uvicorn
