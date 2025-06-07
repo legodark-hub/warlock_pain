@@ -58,23 +58,23 @@ async def retrieve_and_generate_node(state: MessagesState):
     user_input = current_human_message.content
 
     logger.debug(f"Получен пользовательский ввод: {user_input}")
-    character_docs_retrieved = await retriever.ainvoke(
-        f"Информация о персонаже {CHARACTER_NAME}, связанная с: {user_input}",
+    
+    docs_retrieved = await retriever.ainvoke(
+        f"Информация, связанная с: {user_input}",
     )
+    
     char_context_str = "\n---\n".join(
         [
             doc.page_content
-            for doc in character_docs_retrieved
+            for doc in docs_retrieved
             if doc.metadata.get("source") == "character_story"
         ]
     )
-    world_docs_retrieved = await retriever.ainvoke(
-        f"Информация из истории мира, связанная с: {user_input}"
-    )
+ 
     world_context_str = "\n---\n".join(
         [
             doc.page_content
-            for doc in world_docs_retrieved
+            for doc in docs_retrieved
             if doc.metadata.get("source") == "world_history"
         ]
     )
