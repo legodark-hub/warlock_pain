@@ -10,7 +10,7 @@ from prompts import CHARACTER_NAME, CHARACTER_CORE_PERSONALITY
 from vector_store import initialize_retriever
 from loguru import logger
 
-MAX_MESSAGES_HISTORY = 10  
+MAX_MESSAGES_HISTORY = 20  
 
 
 retriever = initialize_retriever()
@@ -95,14 +95,6 @@ async def retrieve_and_generate_node(state: MessagesState):
 <world_context>
 {world_context_str if world_context_str else "Нет специфической информации о мире для этого запроса."}
 </world_context>
-
-Твоя задача - отвечать пользователю как {CHARACTER_NAME}, воплощая его личность, 
-мотивацию и знания, основанные на предоставленном контексте и установленных 
-чертах характера из ее историй.
-Не выходи из роли. Не упоминай, что ты ИИ.
-Будь увлекательным и последовательным в своей роли.
-Если запрос пользователя касается чего-то, чего твой персонаж не знал бы или о чем 
-не заботился бы, ответь так, как это соответствует твоему персонажу.
 """
 
     llm_input_messages = [SystemMessage(content=system_prompt_content)] + state[
