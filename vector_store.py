@@ -9,8 +9,8 @@ EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 CHAR_INFO_PATH = "./data/character_info.txt"
 WORLD_INFO_PATH = "./data/world_info.txt"
 PERSIST_DIRECTORY = "./chroma_db"
-CHUNK_SIZE = 250
-CHUNK_OVERLAP = 50
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 150
 
 def initialize_retriever(k_results: int = 5):
     """
